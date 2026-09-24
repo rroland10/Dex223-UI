@@ -21,6 +21,7 @@ import {
   useSwapGasModeStore,
   useSwapGasPriceStore,
 } from "@/app/[locale]/swap/stores/useSwapGasSettingsStore";
+import { useSwapChartStore } from "@/app/[locale]/swap/stores/useSwapChartStore";
 import { useSwapRecentTransactionsStore } from "@/app/[locale]/swap/stores/useSwapRecentTransactions";
 import { useSwapSettingsStore } from "@/app/[locale]/swap/stores/useSwapSettingsStore";
 import { useSwapTokensStore } from "@/app/[locale]/swap/stores/useSwapTokensStore";
@@ -210,6 +211,7 @@ export default function TradeForm() {
   const [isOpenedFee, setIsOpenedFee] = useState(false);
   const { isOpened: showRecentTransactions, setIsOpened: setShowRecentTransactions } =
     useSwapRecentTransactionsStore();
+  const { isOpened: showChart, setIsOpened: setShowChart } = useSwapChartStore();
   const { setIsOpen } = useTransactionSettingsDialogStore();
   const {
     tokenA,
@@ -475,6 +477,14 @@ export default function TradeForm() {
       <div className="flex justify-between items-center mb-2.5">
         <h3 className="font-bold text-20">{t("swap")}</h3>
         <div className="flex items-center relative left-3">
+          <IconButton
+            buttonSize={IconButtonSize.LARGE}
+            active={showChart}
+            iconName="chart"
+            aria-label={t("price_chart_toggle")}
+            aria-pressed={showChart}
+            onClick={() => setShowChart(!showChart)}
+          />
           <IconButton
             buttonSize={IconButtonSize.LARGE}
             active={showRecentTransactions}

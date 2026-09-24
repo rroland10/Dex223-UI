@@ -96,10 +96,10 @@ export default function PriceChart({
   const stroke = rising ? CHART_GREEN : CHART_RED;
   const gradientId = `price-chart-fill-${rising ? "up" : "down"}`;
 
-  const handleMove = (event: React.MouseEvent<SVGRectElement>) => {
+  const pickIndex = (clientX: number, target: Element) => {
     if (!xScale || series.length === 0) return;
-    const bounds = event.currentTarget.getBoundingClientRect();
-    const offset = event.clientX - bounds.left;
+    const bounds = target.getBoundingClientRect();
+    const offset = clientX - bounds.left;
     // Nearest point by date, not by array index. Days can be missing after zero
     // prices are dropped, so a linear index would land on the wrong candle.
     const date = xScale.invert(Math.min(innerWidth, Math.max(0, offset)));
@@ -109,6 +109,16 @@ export default function PriceChart({
     );
     setHoverIndex(index);
     onHover?.(series[index]);
+  };
+
+  const handleMove = (event: React.MouseEvent<SVGRectElement>) => {
+    pickIndex(event.clientX, event.currentTarget);
+  };
+
+  const handleTouchMove = (event: React.TouchEvent<SVGRectElement>) => {
+    const touch = event.touches[0];
+    if (!touch) return;
+    pickIndex(touch.clientX, event.currentTarget);
   };
 
   const handleLeave = () => {
@@ -153,6 +163,10 @@ export default function PriceChart({
           fill="transparent"
           onMouseMove={handleMove}
           onMouseLeave={handleLeave}
+          onTouchStart={handleTouchMove}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleLeave}
+          style={{ touchAction: "none" }}
         />
       </g>
     </svg>

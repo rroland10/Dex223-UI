@@ -6,6 +6,7 @@ import ConfirmConvertDialog from "@/app/[locale]/swap/components/ConfirmConvertD
 import TradeForm from "@/app/[locale]/swap/components/TradeForm";
 import TwoVersionsInfo from "@/app/[locale]/swap/components/TwoVersionsInfo";
 import { useSwapAmountsStore } from "@/app/[locale]/swap/stores/useSwapAmountsStore";
+import { useSwapChartStore } from "@/app/[locale]/swap/stores/useSwapChartStore";
 import { useSwapRecentTransactionsStore } from "@/app/[locale]/swap/stores/useSwapRecentTransactions";
 import { useSwapTokensStore } from "@/app/[locale]/swap/stores/useSwapTokensStore";
 import Container from "@/components/atoms/Container";
@@ -21,6 +22,7 @@ export default function SwapPage() {
 
   const { isOpened: showRecentTransactions, setIsOpened: setShowRecentTransactions } =
     useSwapRecentTransactionsStore();
+  const { isOpened: showChart } = useSwapChartStore();
 
   const chainId = useCurrentChainId();
 
@@ -36,19 +38,22 @@ export default function SwapPage() {
     resetAmount();
   }, [chainId, resetAmount, resetTokens]);
 
+  const showSidePanel = showChart || showRecentTransactions;
+
   return (
     <>
       <Container>
         <div
           className={clsx(
             "grid py-4 lg:py-[40px] grid-cols-1 mx-auto",
-            showRecentTransactions
-              ? "xl:grid-cols-[580px_600px] xl:max-w-[1200px] gap-4 xl:grid-areas-[left_right] grid-areas-[right,left]"
+            showSidePanel
+              ? "xl:grid-cols-[minmax(440px,580px)_600px] xl:max-w-[1200px] gap-4 xl:grid-areas-[left_right] grid-areas-[right,left]"
               : "xl:grid-cols-[600px] xl:max-w-[600px] grid-areas-[right]",
           )}
         >
           <div className="grid-in-[left] flex justify-center">
-            <div className="w-full sm:max-w-[600px] xl:max-w-full">
+            <div className="flex flex-col gap-4 w-full sm:max-w-[600px] xl:max-w-full">
+              {showChart && <SwapPriceChart tokenA={tokenA} tokenB={tokenB} />}
               <RecentTransactions
                 showRecentTransactions={showRecentTransactions}
                 handleClose={() => setShowRecentTransactions(false)}
@@ -64,9 +69,6 @@ export default function SwapPage() {
               </div>
 
               <TradeForm />
-              {/* Renders nothing until both tokens are chosen, so the form keeps its
-                  position on first load instead of the chart pushing it down. */}
-              <SwapPriceChart tokenA={tokenA} tokenB={tokenB} />
               <SelectedTokensInfo tokenA={tokenA} tokenB={tokenB} />
             </div>
           </div>

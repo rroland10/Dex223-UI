@@ -4,6 +4,7 @@ import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { useTrade } from "@/app/[locale]/swap/hooks/useTrade";
+import Svg from "@/components/atoms/Svg";
 import PriceChart from "@/components/charts/PriceChart";
 import { ChartRange, PricePoint, usePoolPriceChart } from "@/hooks/usePoolPriceChart";
 import { FeeAmount } from "@/sdk_bi/constants";
@@ -12,7 +13,7 @@ import { useComputePoolAddressDex } from "@/sdk_bi/utils/computePoolAddress";
 
 const RANGES: ChartRange[] = [7, 30, 90];
 const DEFAULT_WIDTH = 440;
-const CHART_HEIGHT = 180;
+const CHART_HEIGHT = 220;
 
 function formatPrice(value: number): string {
   if (!Number.isFinite(value)) return "—";
@@ -55,8 +56,10 @@ export default function SwapPriceChart({
     return tokenA.wrapped.address0.toLowerCase() > tokenB.wrapped.address0.toLowerCase();
   }, [tokenA, tokenB]);
 
+  const hasPair = Boolean(tokenA && tokenB);
+
   const { series, latestPrice, change, isLoading, isEmpty } = usePoolPriceChart({
-    poolAddress: poolAddress ?? undefined,
+    poolAddress: hasPair ? (poolAddress ?? undefined) : undefined,
     days,
     inverted,
   });
@@ -80,24 +83,32 @@ export default function SwapPriceChart({
     return () => observer.disconnect();
   }, []);
 
-  const loading = isLoading || Boolean(poolAddressLoading);
-
-  if (!tokenA || !tokenB) return null;
-
+  const loading = hasPair && (isLoading || Boolean(poolAddressLoading));
   const shown = hovered?.close ?? latestPrice;
 
+  const emptyLabel = !hasPair
+    ? t("price_chart_select_tokens")
+    : isEmpty
+      ? t("price_chart_no_data")
+      : t("price_chart_data_not_available");
+
   return (
-    <div className="flex flex-col gap-3 rounded-3 bg-primary-bg p-4 md:p-5">
+    <div className="flex flex-col gap-3 rounded-5 bg-primary-bg p-4 md:p-5">
       <div className="flex items-start justify-between gap-2 flex-wrap">
         <div className="min-w-0">
-          <div className="text-14 text-secondary-text truncate">
-            {tokenA.symbol} / {tokenB.symbol}
+          <div className="flex items-center gap-1.5 text-14 text-secondary-text truncate">
+            <Svg iconName="chart" size={16} className="shrink-0 text-secondary-text" />
+            <span>
+              {hasPair
+                ? `${tokenA!.symbol} / ${tokenB!.symbol}`
+                : t("price_chart_title")}
+            </span>
           </div>
           <div className="flex items-baseline gap-2 flex-wrap">
             <span className="text-20 md:text-24 font-medium">
-              {shown === null ? "—" : formatPrice(shown)}
+              {!hasPair || shown === null ? "—" : formatPrice(shown)}
             </span>
-            {change !== null && !hovered && (
+            {hasPair && change !== null && !hovered && (
               <span className={change >= 0 ? "text-green text-14" : "text-red-light text-14"}>
                 {change >= 0 ? "+" : ""}
                 {change.toFixed(2)}%
@@ -112,9 +123,10 @@ export default function SwapPriceChart({
               key={range}
               type="button"
               onClick={() => setDays(range)}
+              disabled={!hasPair}
               aria-pressed={days === range}
               className={
-                "px-2.5 py-1 rounded-2 text-12 duration-200 " +
+                "px-2.5 py-1 rounded-2 text-12 duration-200 disabled:opacity-40 disabled:pointer-events-none " +
                 (days === range
                   ? "bg-green-bg text-primary-text"
                   : "text-secondary-text hocus:text-primary-text")
@@ -128,11 +140,11 @@ export default function SwapPriceChart({
 
       <div ref={chartRef} className="w-full min-w-0">
         <PriceChart
-          series={series}
+          series={hasPair ? series : []}
           width={width}
           height={height}
           isLoading={loading}
-          emptyLabel={isEmpty ? t("price_chart_no_data") : t("price_chart_data_not_available")}
+          emptyLabel={emptyLabel}
           onHover={setHovered}
         />
       </div>
