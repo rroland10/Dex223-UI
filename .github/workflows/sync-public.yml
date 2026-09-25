@@ -1,0 +1,59 @@
+# test-app.dex223.io deploys from the `public` branch, so every master push is
+# merged into it. On conflict nothing is pushed to `public`; a PR is opened from
+# a separate branch so resolving it in the GitHub UI never commits to master.
+name: Sync public with master
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+concurrency:
+  group: sync-public
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    env:
+      CONFLICT_BRANCH: sync/master-into-public
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: public
+          fetch-depth: 0
+
+      - name: Merge master into public
+        id: merge
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git merge --no-edit origin/master; then
+            echo "result=merged" >> "$GITHUB_OUTPUT"
+          else
+            git merge --abort
+            echo "result=conflict" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Push public
+        if: steps.merge.outputs.result == 'merged'
+        run: git push origin HEAD:public
+
+      - name: Open a PR for the conflict
+        if: steps.merge.outputs.result == 'conflict'
+        run: |
+          existing=$(gh pr list --base public --head "$CONFLICT_BRANCH" --state open --json number --jq '.[0].number')
+          if [ -n "$existing" ]; then
+            echo "PR #$existing is already open. Merge the latest master into $CONFLICT_BRANCH while resolving it."
+          else
+            git push --force origin "origin/master:refs/heads/$CONFLICT_BRANCH"
+            gh pr create --base public --head "$CONFLICT_BRANCH" \
+              --title "Sync public with master (merge conflict)" \
+              --body "Merging master into public conflicts, so test-app.dex223.io is not updating. Resolve the conflicts on this branch and merge with a merge commit, not squash."
+          fi
+          echo "::warning::master could not be merged into public automatically. See the open PR from $CONFLICT_BRANCH."
