@@ -211,7 +211,7 @@ export const ERC223_TOKEN_DEPLOYER_ADDRESS: Record<DexChainId, Address> = {
 // the page's earned/unlock_time reads only work against V2.
 export const REVENUE_ADDRESS: Record<DexChainId, Address> = {
   [DexChainId.MAINNET]: "0xbA75fA26BB88BccEB74a967E4cA2FBfe99d6CE6e",
-  [DexChainId.SEPOLIA]: "0x624e7e0ffB81f4594921676abc9584b135277f31",
+  [DexChainId.SEPOLIA]: "0xC107239bfe75382112034a269386Ef608aA80EC1",
   [DexChainId.BSC_TESTNET]: ZERO_ADDRESS,
   [DexChainId.EOS]: ZERO_ADDRESS,
   [DexChainId.BASE]: ZERO_ADDRESS,
