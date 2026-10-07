@@ -144,6 +144,25 @@ export default function useRevenueContract({
     },
   });
 
+  // RevenueV2 returns each stake in the version it was staked in.
+  const { data: userStakedByVersion, refetch: refetchUserStakedByVersion } = useReadContracts({
+    contracts:
+      revenueAddress && targetAddress && stakingTokenERC20 !== zeroAddress
+        ? [stakingTokenERC20, stakingTokenERC223].map((version) => ({
+            abi: REVENUE_ABI,
+            address: revenueAddress,
+            functionName: "staked_by_version" as const,
+            args: [targetAddress, version],
+            chainId,
+          }))
+        : [],
+    query: {
+      enabled: Boolean(revenueAddress && targetAddress) && stakingTokenERC20 !== zeroAddress,
+    },
+  });
+  const userStakedErc20 = userStakedByVersion?.[0]?.result as bigint | undefined;
+  const userStakedErc223 = userStakedByVersion?.[1]?.result as bigint | undefined;
+
   // Set by the contract on every stake; the delay is the one in force at that moment.
   const { data: userUnlockTime, refetch: refetchUserUnlockTime } = useReadContract({
     abi: REVENUE_ABI,
@@ -389,6 +408,7 @@ export default function useRevenueContract({
     refetchUserStaked();
     refetchUserStakingTimestamp();
     refetchUserUnlockTime();
+    refetchUserStakedByVersion();
     refetchErc223Deposit();
     refetchStakingTokenData();
     refetchTokenBalances();
@@ -398,6 +418,7 @@ export default function useRevenueContract({
     refetchUserStaked,
     refetchUserStakingTimestamp,
     refetchUserUnlockTime,
+    refetchUserStakedByVersion,
     refetchErc223Deposit,
     refetchStakingTokenData,
     refetchTokenBalances,
@@ -747,6 +768,8 @@ export default function useRevenueContract({
     stakingTokenERC223,
     stakingTokenSymbol,
     userStaked,
+    userStakedErc20,
+    userStakedErc223,
     userStakingTimestamp,
     claimDelay,
     rewardDuration,

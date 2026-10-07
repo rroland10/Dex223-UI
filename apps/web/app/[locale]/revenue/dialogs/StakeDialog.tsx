@@ -393,14 +393,14 @@ const StakeDialog = () => {
     refetchUserData,
     canUnstake,
     userStaked,
+    userStakedErc20,
+    userStakedErc223,
     isCorrectNetwork,
     isRevenueDeployed,
     stakingTokenERC20,
     stakingTokenERC223,
     claimDelay,
     hasStaked,
-    contractStakeErc20Balance,
-    contractStakeErc223Balance,
   } = useRevenueContract();
 
   // claim_delay is configurable per deployment (10 days on mainnet, 5 minutes on Sepolia),
@@ -496,15 +496,10 @@ const StakeDialog = () => {
   const isStaking = dialogType === "stake";
   const title = isStaking ? t("stake_action") : t("unstake_action");
 
-  // Unstaking pays the chosen version from the contract's own balance of it, so the
-  // most a user can take in one version is min(staked, what the contract holds).
-  const unstakeLimit = (held: bigint | undefined) => {
-    const staked = typeof userStaked === "bigint" ? userStaked : 0n;
-    const h = held ?? 0n;
-    return staked < h ? staked : h;
-  };
-  const available0 = isStaking ? redErc20Balance : unstakeLimit(contractStakeErc20Balance);
-  const available1 = isStaking ? redErc223Balance : unstakeLimit(contractStakeErc223Balance);
+  // RevenueV2 returns each stake in the version it was staked in, so the most a user can
+  // unstake in one version is what they staked in it.
+  const available0 = isStaking ? redErc20Balance : userStakedErc20;
+  const available1 = isStaking ? redErc223Balance : userStakedErc223;
   const balance0 = available0 ? formatUnits(available0, 18) : "0";
   const balance1 = available1 ? formatUnits(available1, 18) : "0";
 
@@ -661,23 +656,20 @@ const StakeDialog = () => {
           return;
         }
 
-        const held =
-          selectedStandard === Standard.ERC223
-            ? contractStakeErc223Balance
-            : contractStakeErc20Balance;
-        if (held === undefined || amountBigInt > held) {
+        const stakedInVersion =
+          selectedStandard === Standard.ERC223 ? userStakedErc223 : userStakedErc20;
+        if (stakedInVersion === undefined || amountBigInt > stakedInVersion) {
           setStatus(StakeStatus.ERROR);
           setErrorType(StakeError.INSUFFICIENT_BALANCE);
           setErrorMessage(
-            `The Revenue contract holds only ${formatUnits(held ?? 0n, 18)} D223 as ${selectedStandard}. Unstake the rest in the other standard.`,
+            `You staked ${formatUnits(stakedInVersion ?? 0n, 18)} D223 as ${selectedStandard}. Unstake the rest in the other standard.`,
           );
           return;
         }
 
         setStatus(StakeStatus.PENDING);
         try {
-          // RevenueV1 pays the token address passed to withdraw. ERC-223 stakes sit in the
-          // ERC-223 balance; the staking-token pair has no get20/get223 counterpart.
+          // RevenueV2 pays withdraw() in the version passed, out of what was staked in it.
           const withdrawToken =
             selectedStandard === Standard.ERC223 ? stakingTokenERC223 : stakingTokenERC20;
           const unstakeResult = await unstake(
@@ -728,8 +720,8 @@ const StakeDialog = () => {
     redErc223Balance,
     canUnstake,
     userStaked,
-    contractStakeErc20Balance,
-    contractStakeErc223Balance,
+    userStakedErc20,
+    userStakedErc223,
     approve,
     stake,
     stakeERC223,

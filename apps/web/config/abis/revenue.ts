@@ -100,6 +100,23 @@ export const REVENUE_ABI = [
     inputs: [
       {
         indexed: true,
+        name: "user",
+        type: "address",
+      },
+      {
+        indexed: false,
+        name: "amount",
+        type: "uint256",
+      },
+    ],
+    name: "EmergencyWithdrawn",
+    type: "event",
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: true,
         name: "previous_owner",
         type: "address",
       },
@@ -183,6 +200,18 @@ export const REVENUE_ABI = [
       },
     ],
     name: "RewardTokenAdded",
+    type: "event",
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: true,
+        name: "token",
+        type: "address",
+      },
+    ],
+    name: "RewardTokenUnreadable",
     type: "event",
   },
   {
@@ -313,6 +342,18 @@ export const REVENUE_ABI = [
   },
   {
     inputs: [],
+    name: "MIN_STAKE_FLOOR",
+    outputs: [
+      {
+        name: "",
+        type: "uint256",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
     name: "accept_ownership",
     outputs: [],
     stateMutability: "nonpayable",
@@ -373,6 +414,13 @@ export const REVENUE_ABI = [
       },
     ],
     stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "emergency_withdraw",
+    outputs: [],
+    stateMutability: "nonpayable",
     type: "function",
   },
   {
@@ -622,6 +670,27 @@ export const REVENUE_ABI = [
         name: "",
         type: "address",
       },
+      {
+        name: "",
+        type: "address",
+      },
+    ],
+    name: "staked_by_version",
+    outputs: [
+      {
+        name: "",
+        type: "uint256",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        name: "",
+        type: "address",
+      },
     ],
     name: "staking_timestamp",
     outputs: [
@@ -736,6 +805,23 @@ export const REVENUE_ABI = [
   {
     inputs: [],
     name: "total_staked",
+    outputs: [
+      {
+        name: "",
+        type: "uint256",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        name: "",
+        type: "address",
+      },
+    ],
+    name: "total_staked_by_version",
     outputs: [
       {
         name: "",
