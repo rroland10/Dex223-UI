@@ -161,7 +161,18 @@ function recalculateFromCollateralFixed(
   price: bigint, // in fixed-point
 ): bigint {
   const leverageMinusOne = leverage - ONE;
-  return (collateral * leverageMinusOne) / price;
+  const borrow = (collateral * leverageMinusOne) / price - roundingMargin(leverage);
+  return borrow > 0n ? borrow : 0n;
+}
+
+/**
+ * takeLoan requires borrow <= (leverage - 1) * value, where value is the oracle quote for the
+ * collateral rounded down to a whole base unit. The form's ratio carries more digits than that
+ * quote, so at full leverage it suggested a few base units more than the contract allows, and the
+ * transaction reverted with "Leverage error". Keep ceil(leverage - 1) + 1 base units clear of it.
+ */
+function roundingMargin(leverage: bigint): bigint {
+  return (leverage - ONE + ONE - 1n) / ONE + 1n;
 }
 
 /**
@@ -174,7 +185,9 @@ function recalculateFromBorrowFixed(
   price: bigint, // in fixed-point
 ): bigint {
   const leverageMinusOne = leverage - ONE;
-  return (borrow * price) / leverageMinusOne;
+  // Round up, with the same margin as above, so the collateral always covers the borrow.
+  const needed = (borrow + roundingMargin(leverage)) * price;
+  return (needed + leverageMinusOne - 1n) / leverageMinusOne;
 }
 
 export default function BorrowPage({
