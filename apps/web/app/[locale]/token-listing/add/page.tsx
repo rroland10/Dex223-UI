@@ -11,7 +11,7 @@ import { useTranslations } from "next-intl";
 import React, { ChangeEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { useMediaQuery } from "react-responsive";
 import { Address, formatEther, formatGwei, formatUnits, isAddress } from "viem";
-import { useAccount } from "wagmi";
+import { useAccount, useReadContracts } from "wagmi";
 
 import ChooseAutoListingDialog from "@/app/[locale]/token-listing/add/components/ChooseAutoListingDialog";
 import ChoosePaymentDialog from "@/app/[locale]/token-listing/add/components/ChoosePaymentDialog";
@@ -47,6 +47,7 @@ import NetworkFeeConfigDialog from "@/components/dialogs/NetworkFeeConfigDialog"
 import PickTokenDialog from "@/components/dialogs/PickTokenDialog";
 import { useConnectWalletDialogStateStore } from "@/components/dialogs/stores/useConnectWalletStore";
 import { useImportToken } from "@/components/manage-tokens/ImportToken";
+import { ERC20_ABI } from "@/config/abis/erc20";
 import { baseFeeMultipliers, SCALING_FACTOR } from "@/config/constants/baseFeeMultipliers";
 import { formatFloat } from "@/functions/formatFloat";
 import getExplorerLink, { ExplorerLinkType } from "@/functions/getExplorerLink";
@@ -342,11 +343,28 @@ export default function ListTokenPage() {
   // A typed ERC-777 address is never imported, so check the typed address as well as a picked token.
   const { isErc777: isTokenAErc777 } = useIsErc777(tokenA?.wrapped.address0 || tokenAAddress);
   const { isErc777: isTokenBErc777 } = useIsErc777(tokenB?.wrapped.address0 || tokenBAddress);
-  const erc777Symbol = isTokenAErc777
-    ? tokenA?.symbol || truncateMiddle(tokenAAddress)
+  const erc777Address = isTokenAErc777
+    ? tokenA?.wrapped.address0 || tokenAAddress
     : isTokenBErc777
-      ? tokenB?.symbol || truncateMiddle(tokenBAddress)
+      ? tokenB?.wrapped.address0 || tokenBAddress
       : undefined;
+  // The token is not imported, so read its name and symbol to say which token is unsupported.
+  const { data: erc777Meta } = useReadContracts({
+    contracts: (["name", "symbol"] as const).map((functionName) => ({
+      abi: ERC20_ABI,
+      address: erc777Address as Address,
+      functionName,
+      chainId,
+    })),
+    query: { enabled: !!erc777Address && isAddress(erc777Address) },
+  });
+  const erc777Name = erc777Meta?.[0]?.result as string | undefined;
+  const erc777TokenSymbol = erc777Meta?.[1]?.result as string | undefined;
+  const erc777Symbol = erc777Address
+    ? erc777Name && erc777TokenSymbol
+      ? `${erc777Name} (${erc777TokenSymbol})`
+      : erc777TokenSymbol || truncateMiddle(erc777Address)
+    : undefined;
 
   const firstFieldError = useMemo(() => {
     if (tokenAAddress && !isAddress(tokenAAddress)) {
